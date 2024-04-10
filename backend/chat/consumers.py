@@ -4,6 +4,7 @@ from channels.generic.websocket import AsyncJsonWebsocketConsumer
 class Commands:
     JOIN = "join"
     LEAVE = "leave"
+    MESSAGE = "message"
 
 
 class ChatConsumer(AsyncJsonWebsocketConsumer):
@@ -21,13 +22,17 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         user = content["user"]
         data = {"type": "websocket_message", "user": user}
         if command == Commands.JOIN:
-            data["message"] = f"{user} has just joined"
+            data.update({"command": Commands.JOIN, "message": f"{user} has joined"})
         elif command == Commands.LEAVE:
-            data["message"] = f"{user} has left"
+            data.update({"command": Commands.LEAVE, "message": f"{user} has left"})
         else:
-            data["message"] = content["message"]
+            data.update({"command": Commands.MESSAGE, "message": content["message"]})
         await self.channel_layer.group_send(self.group_name, data)
 
     async def websocket_message(self, event: dict) -> None:
-        payload = {"user": event["user"], "message": event["message"]}
+        payload = {
+            "command": event["command"],
+            "user": event["user"],
+            "message": event["message"],
+        }
         await self.send_json(payload)
