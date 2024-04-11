@@ -3,6 +3,9 @@ import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from 'react'
 import classNames from 'classnames'
 import SendIcon from 'assets/icons/send-icon.svg'
 import { IMessage, ECommands } from 'models/message'
+import useWebSocket from 'react-use-websocket'
+import { WEBSOCKETS } from 'utils/consts'
+import useLeaveSocket from 'hooks/useLeaveSocket'
 
 const Chat = () => {
   const [usernameProvided, setUsernameProvided] = useState(false)
@@ -11,10 +14,30 @@ const Chat = () => {
   const [newMessage, setNewMessage] = useState('')
   const chatRef = useRef<HTMLDivElement>(null)
 
+  const { sendJsonMessage } = useWebSocket(WEBSOCKETS.chat, {
+    onMessage: (event) => {
+      const data = JSON.parse(event.data)
+      setMessages((prevMessages) => [...prevMessages, data])
+    }
+  })
+
+  useLeaveSocket(
+    sendJsonMessage,
+    {
+      command: ECommands.Leave,
+      user: username,
+      message: `${username} has left`
+    },
+    usernameProvided
+  )
+
   useEffect(() => {
     if (usernameProvided) {
-      const messageData = { message: `${username} has joined`, user: username, command: 'join' }
-      setMessages((prevState) => [...prevState, messageData])
+      sendJsonMessage({
+        command: ECommands.Join,
+        user: username,
+        message: `${username} has joined`
+      })
     }
   }, [usernameProvided])
 
@@ -35,8 +58,7 @@ const Chat = () => {
     event.preventDefault()
     const message = newMessage.trim()
     if (message) {
-      const messageData = { message: message, user: username, command: 'message' }
-      setMessages((prevState) => [...prevState, messageData])
+      sendJsonMessage({ command: ECommands.Message, user: username, message: message })
       setNewMessage('')
     }
   }
@@ -58,7 +80,7 @@ const Chat = () => {
               className={classNames('chat__message', {
                 centered: message.command !== ECommands.Message,
                 blue: message.user === username && message.command === ECommands.Message,
-                gray: message.user !== username
+                gray: message.user !== username && message.command === ECommands.Message
               })}
               key={index}>
               {message.command === ECommands.Message ? (
