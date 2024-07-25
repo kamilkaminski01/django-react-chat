@@ -1,4 +1,4 @@
-.PHONY: build run recreate superuser lint frontcheck isort black flake8 mypy migrations migrate clear
+.PHONY: build run recreate lint check frontcheck isort black flake8 mypy prod clear
 
 build:
 	docker compose build
@@ -9,14 +9,17 @@ run:
 recreate:
 	docker compose up --build --force-recreate
 
-superuser:
-	docker compose run --rm web python manage.py createsuperuser
-
 lint:
 	docker compose run --rm -T web isort .
 	docker compose run --rm -T web black .
 	docker compose run --rm -T web flake8 .
 	docker compose run --rm -T web mypy .
+
+check:
+	docker compose run --rm web isort --check-only .
+	docker compose run --rm web black --check .
+	docker compose run --rm web flake8 .
+	docker compose run --rm web mypy .
 
 frontcheck:
 	docker compose run --rm -T frontend npm run check
@@ -31,15 +34,11 @@ flake8:
 	docker compose run --rm -T web flake8 .
 
 mypy:
-	docker compose run --rm -T  web mypy .
+	docker compose run --rm -T web mypy .
 
-migrations:
-	docker compose run --rm web python manage.py makemigrations
-
-migrate:
-	docker compose run --rm web python manage.py migrate
+prod:
+	docker compose -f docker-compose-prod.yml up -d
 
 clear:
 	docker compose down -v
-	docker system prune --force
-	docker volume prune --force
+	docker images -aq | xargs -r docker rmi
