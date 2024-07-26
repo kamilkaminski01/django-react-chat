@@ -5,9 +5,12 @@ ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8000
 
-WORKDIR /app
+WORKDIR /backend
 
 COPY requirements.txt ./
 RUN pip install -r requirements.txt
 
-COPY . ./
+COPY . /backend/
+
+RUN chmod +x ./start.sh
+CMD ["/bin/bash", "-c", "./start.sh"]
