@@ -1,12 +1,19 @@
+import os
 from pathlib import Path
+
+import sentry_sdk
+from environs import Env
+from sentry_sdk.integrations.django import DjangoIntegration
+
+env = Env()
+env.read_env()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = "django-insecure-a4@llxc%z41yis%fb8f5mw_g82bg*vq29pt3shbpjhh$fm9^vr"
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
+DEBUG = env.bool("DEBUG")
 
-DEBUG = True
-
-ALLOWED_HOSTS: list = []
+ALLOWED_HOSTS = ["." + host.strip() for host in env.list("ALLOWED_HOSTS")]
 
 INSTALLED_APPS = [
     "daphne",
@@ -29,6 +36,8 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS")
 
 ROOT_URLCONF = "backend.urls"
 
@@ -89,7 +98,16 @@ USE_I18N = True
 
 USE_TZ = True
 
-
 STATIC_URL = "static/"
+
+SENTRY_DSN = env("SENTRY_DSN", default=None)
+
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[DjangoIntegration()],
+        traces_sample_rate=0.01,
+        send_default_pii=True,
+    )
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

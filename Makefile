@@ -1,5 +1,11 @@
 .PHONY: build run recreate lint check frontcheck isort black flake8 mypy prod clear
 
+ifeq ($(env),prod)
+	COMPOSE_FILE=docker-compose-prod.yml
+else
+	COMPOSE_FILE=docker-compose.yml
+endif
+
 build:
 	docker compose build
 
@@ -40,5 +46,5 @@ prod:
 	docker compose -f docker-compose-prod.yml up -d
 
 clear:
-	docker compose down -v
+	docker compose -f $(COMPOSE_FILE) down -v
 	docker images -aq | xargs -r docker rmi
